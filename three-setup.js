@@ -590,10 +590,16 @@ function initializeBattle3D(playerType = 'warrior') {
         return;
     }
 
-    if (!battle3DScene) {
-        battle3DScene = new Battle3DScene('battleArena3D', playerType);
-    } else {
-        battle3DScene.setPlayerCharacter(playerType);
+    try {
+        if (!battle3DScene) {
+            battle3DScene = new Battle3DScene('battleArena3D', playerType);
+        } else {
+            battle3DScene.setPlayerCharacter(playerType);
+        }
+    } catch (err) {
+        console.warn('Falló la inicialización 3D, se usará vista 2D.', err);
+        battle3DScene = null;
+        setBattleView && setBattleView('2d', true);
     }
 }
 

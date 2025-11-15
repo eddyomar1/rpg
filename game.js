@@ -56,8 +56,8 @@ let gameState = {
     maxWaves: 10
 };
 
-let activeBattleView = '3d';
-window.activeBattleView = '3d';
+let activeBattleView = (typeof THREE !== 'undefined') ? '3d' : '2d';
+window.activeBattleView = activeBattleView;
 
 // Mapeo de teclas para acciones
 const keyMap = {
@@ -394,6 +394,12 @@ function clearBattleLog() {
 
 // --- Integración 2D/3D ---
 function initializeBattleScenes(playerType) {
+    const threeOK = typeof THREE !== 'undefined';
+    if (!threeOK) {
+        activeBattleView = '2d';
+        window.activeBattleView = '2d';
+    }
+
     initializeBattle3D(playerType);
     initializeBattle2D(playerType, CHARACTERS[playerType]?.icon || '⚔️');
     refreshBattleVisuals();
