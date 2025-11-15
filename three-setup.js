@@ -12,6 +12,21 @@ class Battle3DScene {
         this.lights = [];
         this.particles = [];
         this.playerType = initialPlayerType;
+        this.baseCameraHeight = 5;
+        this.zoomDistance = 15;
+        this.minZoom = 6;
+        this.maxZoom = 28;
+        this.cameraTarget = new THREE.Vector3(0, 2, 0);
+        this.shakeIntensity = 0;
+        this.shakeEnd = 0;
+        this.playerBaseX = -10;
+        this.enemyBaseX = 10;
+        this.playerCurrentX = this.playerBaseX;
+        this.enemyCurrentX = this.enemyBaseX;
+        this.playerForwardLimit = -2;
+        this.playerBackwardLimit = -18;
+        this.playerMoveStep = 1.2;
+        this.handleKeyDown = this.handleKeyDown.bind(this);
         
         this.initScene();
     }
@@ -26,8 +41,7 @@ class Battle3DScene {
         const width = this.container.clientWidth;
         const height = this.container.clientHeight;
         this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-        this.camera.position.set(0, 5, 15);
-        this.camera.lookAt(0, 2, 0);
+        this.updateCameraPosition(false);
 
         // Crear renderizador
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -50,6 +64,66 @@ class Battle3DScene {
 
         // Manejar redimensionamiento
         window.addEventListener('resize', () => this.onWindowResize());
+        document.addEventListener('keydown', this.handleKeyDown);
+    }
+
+    handleKeyDown(event) {
+        if (!this.camera) return;
+        if (window.activeBattleView && window.activeBattleView !== '3d') return;
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            this.movePlayer(true);
+        } else if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            this.movePlayer(false);
+        } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            this.adjustZoom(-1);
+        } else if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            this.adjustZoom(1);
+        }
+    }
+
+    movePlayer(forward = true) {
+        if (!this.playerModel) return;
+        const direction = forward ? 1 : -1;
+        const nextX = this.playerCurrentX + (direction * this.playerMoveStep);
+        this.playerCurrentX = Math.min(
+            this.playerForwardLimit,
+            Math.max(this.playerBackwardLimit, nextX)
+        );
+        this.playerModel.position.x = this.playerCurrentX;
+    }
+
+    cameraShake(intensity = 0.25, duration = 250) {
+        this.shakeIntensity = intensity;
+        this.shakeEnd = Date.now() + duration;
+    }
+
+    adjustZoom(delta) {
+        const newDistance = this.zoomDistance + delta;
+        this.zoomDistance = Math.min(this.maxZoom, Math.max(this.minZoom, newDistance));
+        this.updateCameraPosition(false);
+        this.camera.updateProjectionMatrix();
+    }
+
+    updateCameraPosition(applyShake = false) {
+        if (!this.camera) return;
+        let offsetX = 0;
+        let offsetY = 0;
+        let offsetZ = 0;
+        if (applyShake && this.shakeEnd > Date.now()) {
+            offsetX = (Math.random() - 0.5) * this.shakeIntensity;
+            offsetY = (Math.random() - 0.5) * this.shakeIntensity * 0.4;
+            offsetZ = (Math.random() - 0.5) * this.shakeIntensity;
+        }
+        this.camera.position.set(
+            offsetX,
+            this.baseCameraHeight + offsetY,
+            this.zoomDistance + offsetZ
+        );
+        this.camera.lookAt(this.cameraTarget);
     }
 
     setupLights() {
@@ -134,7 +208,8 @@ class Battle3DScene {
 
         // Crear modelo dinámico según la clase
         this.playerModel = createPlayerCharacter(playerType);
-        this.playerModel.position.set(-10, 0, 0);
+        this.playerCurrentX = this.playerBaseX;
+        this.playerModel.position.set(this.playerCurrentX, 0, 0);
         this.scene.add(this.playerModel);
         
         // Crear controlador de animaciones
@@ -151,7 +226,8 @@ class Battle3DScene {
 
         // Crear modelo dinámico según el tipo de enemigo
         this.enemyModel = createEnemyCharacter(enemyData);
-        this.enemyModel.position.set(10, 0, 0);
+        this.enemyCurrentX = this.enemyBaseX;
+        this.enemyModel.position.set(this.enemyCurrentX, 0, 0);
         this.scene.add(this.enemyModel);
         
         // Crear controlador de animaciones
@@ -169,9 +245,16 @@ class Battle3DScene {
 
         controller.attackAnimation();
         const target = attacker === 'player' ? this.enemyModel : this.playerModel;
+        const source = attacker === 'player' ? this.playerModel : this.enemyModel;
         if (target) {
             this.createImpactParticles(target.position);
+            this.createShockwave(target.position, attacker === 'player' ? 0xfff176 : 0xff6b6b, 4);
+            this.createLightPulse(target.position, attacker === 'player' ? 0xffde68 : 0xff6e6e);
         }
+        if (source) {
+            this.createSlashEffect(source, attacker === 'player');
+        }
+        this.cameraShake(attacker === 'player' ? 0.45 : 0.3, 260);
     }
 
     animateSkill(attacker) {
@@ -180,9 +263,16 @@ class Battle3DScene {
 
         controller.skillAnimation();
         const target = attacker === 'player' ? this.enemyModel : this.playerModel;
+        const source = attacker === 'player' ? this.playerModel : this.enemyModel;
         if (target) {
             this.createMagicParticles(target.position, attacker === 'player' ? 0x667eea : 0xff6b6b);
+            this.createShockwave(target.position, attacker === 'player' ? 0x8c9eff : 0xff8a65, 6);
         }
+        if (source) {
+            this.createAura(source, attacker === 'player' ? 0x9ab3ff : 0xffa38a, 1.4, 550);
+            this.createLightPulse(source.position, attacker === 'player' ? 0x94b9ff : 0xffa37b);
+        }
+        this.cameraShake(0.5, 320);
     }
 
     animateHeal(healer) {
@@ -193,6 +283,8 @@ class Battle3DScene {
         const source = healer === 'player' ? this.playerModel : this.enemyModel;
         if (source) {
             this.createHealParticles(source.position);
+            this.createAura(source, 0x66ffad, 1.3, 650);
+            this.createLightPulse(source.position, 0x4effc6);
         }
     }
 
@@ -204,11 +296,13 @@ class Battle3DScene {
         const source = defender === 'player' ? this.playerModel : this.enemyModel;
         if (source) {
             this.createShieldEffect(source.position);
+            this.createShockwave(source.position, 0x8ea8ff, 3);
+            this.createAura(source, 0xb2c4ff, 1.8, 700);
         }
     }
 
     createImpactParticles(position) {
-        const particleCount = 10;
+        const particleCount = 18;
         for (let i = 0; i < particleCount; i++) {
             const particle = this.createParticle(position, {
                 color: Math.random() > 0.5 ? 0xff6b6b : 0xffed4e,
@@ -220,7 +314,7 @@ class Battle3DScene {
     }
 
     createMagicParticles(position, color) {
-        const particleCount = 15;
+        const particleCount = 24;
         for (let i = 0; i < particleCount; i++) {
             const particle = this.createParticle(position, {
                 color: color,
@@ -232,7 +326,7 @@ class Battle3DScene {
     }
 
     createHealParticles(position) {
-        const particleCount = 12;
+        const particleCount = 18;
         for (let i = 0; i < particleCount; i++) {
             const particle = this.createParticle(position, {
                 color: 0x4caf50,
@@ -268,6 +362,117 @@ class Battle3DScene {
                 this.scene.remove(shield);
             }
         }, 30);
+    }
+
+    createSlashEffect(model, towardEnemy) {
+        if (!model) return;
+        const geometry = new THREE.PlaneGeometry(0.25, 2.8);
+        const material = new THREE.MeshBasicMaterial({
+            color: towardEnemy ? 0xfff59d : 0xff867c,
+            transparent: true,
+            opacity: 0.9,
+            side: THREE.DoubleSide
+        });
+        const slash = new THREE.Mesh(geometry, material);
+        slash.position.copy(model.position).add(new THREE.Vector3(towardEnemy ? 1 : -1, 1.2, 0));
+        slash.rotation.y = towardEnemy ? 0 : Math.PI;
+        slash.rotation.x = Math.PI / 4;
+        this.scene.add(slash);
+
+        const start = Date.now();
+        const duration = 220;
+        const animateSlash = () => {
+            const progress = (Date.now() - start) / duration;
+            if (progress >= 1) {
+                this.scene.remove(slash);
+                geometry.dispose();
+                material.dispose();
+                return;
+            }
+            slash.position.x += towardEnemy ? 0.35 : -0.35;
+            slash.rotation.z += towardEnemy ? -0.25 : 0.25;
+            material.opacity = 0.9 * (1 - progress);
+            requestAnimationFrame(animateSlash);
+        };
+        animateSlash();
+    }
+
+    createShockwave(position, color = 0xffffff, scale = 4) {
+        const geometry = new THREE.RingGeometry(0.5, 0.8, 32);
+        const material = new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 0.7,
+            side: THREE.DoubleSide
+        });
+        const ring = new THREE.Mesh(geometry, material);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(position.x, 0.05, position.z);
+        this.scene.add(ring);
+
+        const start = Date.now();
+        const duration = 450;
+        const animateRing = () => {
+            const progress = (Date.now() - start) / duration;
+            if (progress >= 1) {
+                this.scene.remove(ring);
+                geometry.dispose();
+                material.dispose();
+                return;
+            }
+            const grow = 1 + (scale * progress);
+            ring.scale.set(grow, grow, grow);
+            material.opacity = 0.7 * (1 - progress);
+            requestAnimationFrame(animateRing);
+        };
+        animateRing();
+    }
+
+    createAura(model, color = 0xffffff, baseScale = 1.4, duration = 600) {
+        if (!model) return;
+        const geometry = new THREE.SphereGeometry(baseScale, 20, 20);
+        const material = new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 0.35,
+            wireframe: true
+        });
+        const aura = new THREE.Mesh(geometry, material);
+        aura.position.copy(model.position).add(new THREE.Vector3(0, 1.2, 0));
+        this.scene.add(aura);
+
+        const start = Date.now();
+        const animateAura = () => {
+            const progress = (Date.now() - start) / duration;
+            if (progress >= 1) {
+                this.scene.remove(aura);
+                geometry.dispose();
+                material.dispose();
+                return;
+            }
+            aura.scale.setScalar(1 + progress * 0.8);
+            material.opacity = 0.35 * (1 - progress);
+            requestAnimationFrame(animateAura);
+        };
+        animateAura();
+    }
+
+    createLightPulse(position, color = 0xffffff) {
+        const light = new THREE.PointLight(color, 1.5, 18);
+        light.position.copy(position).add(new THREE.Vector3(0, 2, 0));
+        this.scene.add(light);
+        const start = Date.now();
+        const duration = 320;
+        const animateLight = () => {
+            const progress = (Date.now() - start) / duration;
+            if (progress >= 1) {
+                this.scene.remove(light);
+                return;
+            }
+            light.intensity = 1.5 * (1 - progress);
+            requestAnimationFrame(animateLight);
+        };
+        animateLight();
     }
 
     createParticle(position, config) {
@@ -333,15 +538,15 @@ class Battle3DScene {
 
         // Pequeña animación de daño (temblor)
         if (playerHealthPercent < 0.5) {
-            this.playerModel.position.x = -10 + Math.sin(Date.now() * 0.01) * 0.2;
+            this.playerModel.position.x = this.playerCurrentX + Math.sin(Date.now() * 0.01) * 0.2;
         } else {
-            this.playerModel.position.x = -10;
+            this.playerModel.position.x = this.playerCurrentX;
         }
 
         if (enemyHealthPercent < 0.5) {
-            this.enemyModel.position.x = 10 + Math.sin(Date.now() * 0.01) * 0.2;
+            this.enemyModel.position.x = this.enemyCurrentX + Math.sin(Date.now() * 0.01) * 0.2;
         } else {
-            this.enemyModel.position.x = 10;
+            this.enemyModel.position.x = this.enemyCurrentX;
         }
     }
 
@@ -350,6 +555,9 @@ class Battle3DScene {
 
         // Actualizar partículas
         this.updateParticles();
+
+        const applyingShake = this.shakeEnd && Date.now() < this.shakeEnd;
+        this.updateCameraPosition(!!applyingShake);
 
         // Rotar luces para efecto dinámico
         this.lights[1].position.x = Math.sin(Date.now() * 0.001) * 25;

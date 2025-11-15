@@ -57,12 +57,19 @@
         <!-- Pantalla de Batalla -->
         <div id="battleScreen" class="screen">
             <div class="battle-info">
-                <h2>⚔️ Batalla en Progreso</h2>
-                <p id="waveInfo">Ola: <span id="wave">1</span> | Enemigos: <span id="enemyCount">0</span></p>
+                <div>
+                    <h2>⚔️ Batalla en Progreso</h2>
+                    <p id="waveInfo">Ola: <span id="wave">1</span> | Enemigos: <span id="enemyCount">0</span></p>
+                </div>
+                <div class="view-toggle">
+                    <button class="view-btn active" id="view3dBtn" onclick="setBattleView('3d')">Vista 3D</button>
+                    <button class="view-btn" id="view2dBtn" onclick="setBattleView('2d')">Vista 2D</button>
+                </div>
             </div>
 
             <!-- Arena 3D -->
             <div id="battleArena3D" class="battle-arena-3d"></div>
+            <canvas id="battleArena2D" class="battle-arena-2d"></canvas>
 
             <!-- Panel de información (superpuesto sobre 3D) -->
             <div class="battle-info-overlay">
@@ -118,21 +125,21 @@
 
             <!-- Acciones -->
             <div class="actions">
-                <button class="action-btn attack-btn" onclick="playerAttack()">
+                <button class="action-btn attack-btn" onclick="playerAttack()" title="Presiona Q/1/A">
                     <span class="btn-emoji">⚔️</span>
-                    <span class="btn-text">Ataque Normal</span>
+                    <span class="btn-text">Ataque (Q)</span>
                 </button>
-                <button class="action-btn skill-btn" onclick="playerSkill()">
+                <button class="action-btn skill-btn" onclick="playerSkill()" title="Presiona W/2/S">
                     <span class="btn-emoji">✨</span>
-                    <span class="btn-text">Habilidad Especial</span>
+                    <span class="btn-text">Especial (W)</span>
                 </button>
-                <button class="action-btn heal-btn" onclick="playerHeal()">
+                <button class="action-btn heal-btn" onclick="playerHeal()" title="Presiona E/3/D">
                     <span class="btn-emoji">💚</span>
-                    <span class="btn-text">Curar</span>
+                    <span class="btn-text">Curar (E)</span>
                 </button>
-                <button class="action-btn defend-btn" onclick="playerDefend()">
+                <button class="action-btn defend-btn" onclick="playerDefend()" title="Presiona R/4/F">
                     <span class="btn-emoji">🛡️</span>
-                    <span class="btn-text">Defender</span>
+                    <span class="btn-text">Defender (R)</span>
                 </button>
             </div>
         </div>
@@ -155,6 +162,7 @@
     </div>
 
     <script src="three-setup.js"></script>
+    <script src="battle2d.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

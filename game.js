@@ -56,6 +56,35 @@ let gameState = {
     maxWaves: 10
 };
 
+let activeBattleView = '3d';
+window.activeBattleView = '3d';
+
+// Mapeo de teclas para acciones
+const keyMap = {
+    '1': playerAttack,
+    '2': playerSkill,
+    '3': playerHeal,
+    '4': playerDefend,
+    'q': playerAttack,
+    'w': playerSkill,
+    'e': playerHeal,
+    'r': playerDefend,
+    'a': playerAttack,
+    's': playerSkill,
+    'd': playerHeal,
+    'f': playerDefend
+};
+
+// Configurar listeners de teclado
+document.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+    const action = keyMap[key];
+    if (action && gameState.turn === 'player') {
+        event.preventDefault();
+        action();
+    }
+});
+
 // Seleccionar personaje
 function selectCharacter(characterType) {
     const charData = CHARACTERS[characterType];
@@ -79,7 +108,7 @@ function selectCharacter(characterType) {
     
     // Inicializar 3D después de cambiar pantalla
     setTimeout(() => {
-        initializeBattle3D(gameState.player.type);
+        initializeBattleScenes(gameState.player.type);
         updatePlayerDisplay();
         spawnEnemy();
     }, 100);
@@ -114,6 +143,9 @@ function spawnEnemy() {
     if (battle3DScene) {
         battle3DScene.createEnemyModel(gameState.enemy);
     }
+    if (typeof set2DEnemy === 'function') {
+        set2DEnemy(gameState.enemy);
+    }
 
     updateEnemyDisplay();
     addLog(`¡Apareció ${gameState.enemy.name} nivel ${gameState.enemy.level}!`, 'info');
@@ -138,6 +170,8 @@ function updatePlayerDisplay() {
     const hpPercent = (gameState.player.hp / gameState.player.maxHp) * 100;
     document.getElementById('playerHpBar').style.width = hpPercent + '%';
     document.getElementById('playerHp').textContent = `${gameState.player.hp}/${gameState.player.maxHp}`;
+    
+    refreshBattleVisuals();
 }
 
 // Actualizar pantalla del enemigo
@@ -153,6 +187,8 @@ function updateEnemyDisplay() {
     document.getElementById('enemyHp').textContent = `${gameState.enemy.hp}/${gameState.enemy.maxHp}`;
 
     document.getElementById('wave').textContent = gameState.wave;
+    
+    refreshBattleVisuals();
 }
 
 // Ataque del jugador
@@ -162,13 +198,9 @@ function playerAttack() {
     const damage = calculateDamage(gameState.player, gameState.enemy);
     gameState.enemy.hp -= damage;
 
-    // Animar en 3D
-    animate3DAttack('player');
-    
-    // Animar daño en enemigo
-    if (battle3DScene && battle3DScene.enemyAnimController) {
-        battle3DScene.enemyAnimController.damageAnimation();
-    }
+    // Animar
+    triggerAttackAnimation('player');
+    notifyDamage('enemy');
     
     addLog(`${gameState.player.name} atacó a ${gameState.enemy.name} por ${damage} de daño!`, 'damage');
     updateEnemyDisplay();
@@ -189,11 +221,9 @@ function playerSkill() {
     gameState.enemy.hp -= damage;
     gameState.specialCooldown = 3;
 
-    // Animar en 3D
-    animate3DSkill('player');
-    if (battle3DScene && battle3DScene.enemyAnimController) {
-        battle3DScene.enemyAnimController.damageAnimation();
-    }
+    // Animar
+    triggerSkillAnimation('player');
+    notifyDamage('enemy');
 
     addLog(`${gameState.player.name} usó ${gameState.player.special}! Daño: ${Math.floor(damage)}!`, 'damage');
     updateEnemyDisplay();
@@ -210,8 +240,8 @@ function playerHeal() {
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healAmount);
     const actualHealed = gameState.player.hp - oldHp;
 
-    // Animar en 3D
-    animate3DHeal('player');
+    // Animar
+    triggerHealAnimation('player');
 
     addLog(`${gameState.player.name} se curó ${actualHealed} puntos de vida.`, 'heal');
     updatePlayerDisplay();
@@ -226,8 +256,8 @@ function playerDefend() {
 
     gameState.defending = true;
     
-    // Animar en 3D
-    animate3DDefend('player');
+    // Animar
+    triggerDefendAnimation('player');
 
     addLog(`${gameState.player.name} se pone en guardia! Defensa aumentada.`, 'info');
     gameState.turn = 'enemy';
@@ -243,13 +273,9 @@ function enemyTurn() {
         const damage = calculateDamage(gameState.enemy, gameState.player);
         gameState.player.hp -= damage;
         
-        // Animar en 3D
-        animate3DAttack('enemy');
-        
-        // Animar daño en jugador
-        if (battle3DScene && battle3DScene.playerAnimController) {
-            battle3DScene.playerAnimController.damageAnimation();
-        }
+        // Animar
+        triggerAttackAnimation('enemy');
+        notifyDamage('player');
         
         addLog(`${gameState.enemy.name} atacó a ${gameState.player.name} por ${damage} de daño!`, 'damage');
         updatePlayerDisplay();
@@ -364,4 +390,77 @@ function addLog(message, type = 'info') {
 
 function clearBattleLog() {
     document.getElementById('battleLog').innerHTML = '';
+}
+
+// --- Integración 2D/3D ---
+function initializeBattleScenes(playerType) {
+    initializeBattle3D(playerType);
+    initializeBattle2D(playerType, CHARACTERS[playerType]?.icon || '⚔️');
+    refreshBattleVisuals();
+    setBattleView(activeBattleView || '3d', true);
+}
+
+function refreshBattleVisuals() {
+    if (battle3DScene && gameState.player && gameState.enemy) {
+        update3DModels(gameState.player, gameState.enemy);
+    }
+    if (typeof update2DModels === 'function' && gameState.player && gameState.enemy) {
+        update2DModels(gameState.player, gameState.enemy);
+    }
+}
+
+function triggerAttackAnimation(attacker) {
+    animate3DAttack(attacker);
+    if (typeof animate2DAttack === 'function') animate2DAttack(attacker);
+}
+
+function triggerSkillAnimation(attacker) {
+    animate3DSkill(attacker);
+    if (typeof animate2DSkill === 'function') animate2DSkill(attacker);
+}
+
+function triggerHealAnimation(healer) {
+    animate3DHeal(healer);
+    if (typeof animate2DHeal === 'function') animate2DHeal(healer);
+}
+
+function triggerDefendAnimation(defender) {
+    animate3DDefend(defender);
+    if (typeof animate2DDefend === 'function') animate2DDefend(defender);
+}
+
+function notifyDamage(target) {
+    if (target === 'enemy' && battle3DScene?.enemyAnimController) {
+        battle3DScene.enemyAnimController.damageAnimation();
+    } else if (target === 'player' && battle3DScene?.playerAnimController) {
+        battle3DScene.playerAnimController.damageAnimation();
+    }
+    if (typeof flash2DDamage === 'function') {
+        flash2DDamage(target);
+    }
+}
+
+function setBattleView(mode = '3d', force = false) {
+    if (!force && mode === activeBattleView) return;
+    activeBattleView = mode;
+    window.activeBattleView = mode;
+    const arena3D = document.getElementById('battleArena3D');
+    const arena2D = document.getElementById('battleArena2D');
+    const btn3D = document.getElementById('view3dBtn');
+    const btn2D = document.getElementById('view2dBtn');
+
+    if (mode === '2d') {
+        arena2D?.classList.add('active');
+        arena3D?.classList.add('hidden');
+        if (btn2D) btn2D.classList.add('active');
+        if (btn3D) btn3D.classList.remove('active');
+        if (battle2DScene && battle2DScene.resize) {
+            battle2DScene.resize();
+        }
+    } else {
+        arena2D?.classList.remove('active');
+        arena3D?.classList.remove('hidden');
+        if (btn3D) btn3D.classList.add('active');
+        if (btn2D) btn2D.classList.remove('active');
+    }
 }
