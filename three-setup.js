@@ -584,6 +584,12 @@ class Battle3DScene {
 let battle3DScene = null;
 
 function initializeBattle3D(playerType = 'warrior') {
+    if (typeof THREE === 'undefined') {
+        console.warn('THREE.js no está disponible, usando vista 2D únicamente.');
+        setBattleView && setBattleView('2d', true);
+        return;
+    }
+
     if (!battle3DScene) {
         battle3DScene = new Battle3DScene('battleArena3D', playerType);
     } else {
