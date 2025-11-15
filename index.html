@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Battle Arena</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚔️ RPG Battle Arena ⚔️</h1>
+            <p>Derrota a tus enemigos y conviértete en una leyenda</p>
+        </header>
+
+        <!-- Pantalla de Inicio -->
+        <div id="startScreen" class="screen active">
+            <h2>Bienvenido, Aventurero</h2>
+            <p>Elige tu clase y comienza tu viaje épico</p>
+            
+            <div class="character-selection">
+                <div class="character-card" onclick="selectCharacter('warrior')">
+                    <div class="character-icon">⚔️</div>
+                    <h3>Guerrero</h3>
+                    <p>Alta defensa y ataque</p>
+                    <span class="stats">HP: 150 | ATK: 15 | DEF: 12</span>
+                </div>
+                
+                <div class="character-card" onclick="selectCharacter('mage')">
+                    <div class="character-icon">🔮</div>
+                    <h3>Mago</h3>
+                    <p>Hechizos poderosos</p>
+                    <span class="stats">HP: 100 | ATK: 20 | DEF: 8</span>
+                </div>
+                
+                <div class="character-card" onclick="selectCharacter('archer')">
+                    <div class="character-icon">🏹</div>
+                    <h3>Arquero</h3>
+                    <p>Velocidad y precisión</p>
+                    <span class="stats">HP: 120 | ATK: 18 | DEF: 10</span>
+                </div>
+                
+                <div class="character-card" onclick="selectCharacter('paladin')">
+                    <div class="character-icon">🛡️</div>
+                    <h3>Paladín</h3>
+                    <p>Equilibrio perfecto</p>
+                    <span class="stats">HP: 140 | ATK: 14 | DEF: 14</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pantalla de Batalla -->
+        <div id="battleScreen" class="screen">
+            <div class="battle-info">
+                <h2>⚔️ Batalla en Progreso</h2>
+                <p id="waveInfo">Ola: <span id="wave">1</span> | Enemigos: <span id="enemyCount">0</span></p>
+            </div>
+
+            <div class="battle-arena">
+                <!-- Jugador -->
+                <div class="character-section player-section">
+                    <div class="character-display">
+                        <div id="playerIcon" class="character-icon-large">⚔️</div>
+                        <div class="character-info">
+                            <h3 id="playerName">Jugador</h3>
+                            <div class="stat-bar">
+                                <div class="stat-label">HP</div>
+                                <div class="progress-bar">
+                                    <div id="playerHpBar" class="hp-fill"></div>
+                                </div>
+                                <span id="playerHp">150/150</span>
+                            </div>
+                            <div class="stats-display">
+                                <span>ATK: <span id="playerAtk">15</span></span>
+                                <span>DEF: <span id="playerDef">12</span></span>
+                                <span>LVL: <span id="playerLevel">1</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Enemigo -->
+                <div class="character-section enemy-section">
+                    <div class="character-display">
+                        <div id="enemyIcon" class="character-icon-large">👹</div>
+                        <div class="character-info">
+                            <h3 id="enemyName">Enemigo</h3>
+                            <div class="stat-bar">
+                                <div class="stat-label">HP</div>
+                                <div class="progress-bar">
+                                    <div id="enemyHpBar" class="hp-fill"></div>
+                                </div>
+                                <span id="enemyHp">100/100</span>
+                            </div>
+                            <div class="stats-display">
+                                <span>ATK: <span id="enemyAtk">10</span></span>
+                                <span>DEF: <span id="enemyDef">5</span></span>
+                                <span>LVL: <span id="enemyLevel">1</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log de Batalla -->
+            <div class="battle-log">
+                <h4>📜 Registro de Batalla</h4>
+                <div id="battleLog" class="log-content"></div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="actions">
+                <button class="action-btn attack-btn" onclick="playerAttack()">
+                    <span class="btn-emoji">⚔️</span>
+                    <span class="btn-text">Ataque Normal</span>
+                </button>
+                <button class="action-btn skill-btn" onclick="playerSkill()">
+                    <span class="btn-emoji">✨</span>
+                    <span class="btn-text">Habilidad Especial</span>
+                </button>
+                <button class="action-btn heal-btn" onclick="playerHeal()">
+                    <span class="btn-emoji">💚</span>
+                    <span class="btn-text">Curar</span>
+                </button>
+                <button class="action-btn defend-btn" onclick="playerDefend()">
+                    <span class="btn-emoji">🛡️</span>
+                    <span class="btn-text">Defender</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Pantalla de Fin de Juego -->
+        <div id="gameOverScreen" class="screen">
+            <div id="gameOverContent">
+                <h2 id="gameOverTitle">¡Has Perdido!</h2>
+                <div class="game-over-stats">
+                    <p>Nivel alcanzado: <span id="finalLevel">1</span></p>
+                    <p>Enemigos derrotados: <span id="enemiesDefeated">0</span></p>
+                    <p>Ola completada: <span id="waveCompleted">1</span></p>
+                </div>
+                <button class="action-btn" onclick="location.reload()">
+                    <span class="btn-emoji">🔄</span>
+                    <span class="btn-text">Jugar de Nuevo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
