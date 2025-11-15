@@ -111,194 +111,64 @@ class Battle3DScene {
         this.scene.add(line);
     }
 
-    createPlayerModel() {
-        const group = new THREE.Group();
-        group.position.set(-10, 0, 0);
-
-        // Cuerpo
-        const bodyGeometry = new THREE.BoxGeometry(2, 3, 1);
-        const bodyMaterial = new THREE.MeshStandardMaterial({
-            color: 0x667eea,
-            metalness: 0.5,
-            roughness: 0.5
-        });
-        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.castShadow = true;
-        body.receiveShadow = true;
-        body.position.y = 1.5;
-        group.add(body);
-
-        // Cabeza
-        const headGeometry = new THREE.SphereGeometry(0.8, 32, 32);
-        const headMaterial = new THREE.MeshStandardMaterial({
-            color: 0xf4a261,
-            metalness: 0.2,
-            roughness: 0.6
-        });
-        const head = new THREE.Mesh(headGeometry, headMaterial);
-        head.castShadow = true;
-        head.receiveShadow = true;
-        head.position.y = 3.2;
-        group.add(head);
-
-        // Brazo izquierdo
-        const armGeometry = new THREE.BoxGeometry(0.8, 2, 0.6);
-        const armMaterial = new THREE.MeshStandardMaterial({
-            color: 0x667eea,
-            metalness: 0.5,
-            roughness: 0.5
-        });
-        const armLeft = new THREE.Mesh(armGeometry, armMaterial);
-        armLeft.castShadow = true;
-        armLeft.position.set(-1.3, 2, 0);
-        group.add(armLeft);
-
-        // Brazo derecho
-        const armRight = new THREE.Mesh(armGeometry, armMaterial);
-        armRight.castShadow = true;
-        armRight.position.set(1.3, 2, 0);
-        group.add(armRight);
-
-        // Arma (espada)
-        const swordGeometry = new THREE.BoxGeometry(0.3, 3, 0.8);
-        const swordMaterial = new THREE.MeshStandardMaterial({
-            color: 0xffed4e,
-            metalness: 0.8,
-            roughness: 0.2
-        });
-        const sword = new THREE.Mesh(swordGeometry, swordMaterial);
-        sword.castShadow = true;
-        sword.position.set(1.5, 2, 0.5);
-        sword.rotation.z = Math.PI / 4;
-        group.add(sword);
-
-        this.playerModel = group;
-        this.scene.add(group);
+    createPlayerModel(playerType = 'warrior') {
+        // Crear modelo dinámico según la clase
+        this.playerModel = createPlayerCharacter(playerType);
+        this.playerModel.position.set(-10, 0, 0);
+        this.scene.add(this.playerModel);
+        
+        // Crear controlador de animaciones
+        this.playerAnimController = new AnimationController(this.scene, this.playerModel, true);
     }
 
-    createEnemyModel() {
-        const group = new THREE.Group();
-        group.position.set(10, 0, 0);
-
-        // Cuerpo
-        const bodyGeometry = new THREE.BoxGeometry(2.5, 3.5, 1.2);
-        const bodyMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff6b6b,
-            metalness: 0.4,
-            roughness: 0.6
-        });
-        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.castShadow = true;
-        body.receiveShadow = true;
-        body.position.y = 1.75;
-        group.add(body);
-
-        // Cabeza
-        const headGeometry = new THREE.SphereGeometry(1, 32, 32);
-        const headMaterial = new THREE.MeshStandardMaterial({
-            color: 0xd63031,
-            metalness: 0.2,
-            roughness: 0.7
-        });
-        const head = new THREE.Mesh(headGeometry, headMaterial);
-        head.castShadow = true;
-        head.receiveShadow = true;
-        head.position.y = 3.5;
-        group.add(head);
-
-        // Brazo izquierdo
-        const armGeometry = new THREE.BoxGeometry(1, 2.5, 0.8);
-        const armMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff6b6b,
-            metalness: 0.4,
-            roughness: 0.6
-        });
-        const armLeft = new THREE.Mesh(armGeometry, armMaterial);
-        armLeft.castShadow = true;
-        armLeft.position.set(-1.6, 2.5, 0);
-        group.add(armLeft);
-
-        // Brazo derecho
-        const armRight = new THREE.Mesh(armGeometry, armMaterial);
-        armRight.castShadow = true;
-        armRight.position.set(1.6, 2.5, 0);
-        group.add(armRight);
-
-        // Cuernos
-        const hornGeometry = new THREE.ConeGeometry(0.3, 1, 8);
-        const hornMaterial = new THREE.MeshStandardMaterial({
-            color: 0x2d2d44,
-            metalness: 0.6,
-            roughness: 0.3
-        });
-        const hornLeft = new THREE.Mesh(hornGeometry, hornMaterial);
-        hornLeft.position.set(-0.5, 4.2, 0);
-        group.add(hornLeft);
-
-        const hornRight = new THREE.Mesh(hornGeometry, hornMaterial);
-        hornRight.position.set(0.5, 4.2, 0);
-        group.add(hornRight);
-
-        this.enemyModel = group;
-        this.scene.add(group);
+    createEnemyModel(enemyData) {
+        // Crear modelo dinámico según el tipo de enemigo
+        this.enemyModel = createEnemyCharacter(enemyData);
+        this.enemyModel.position.set(10, 0, 0);
+        this.scene.add(this.enemyModel);
+        
+        // Crear controlador de animaciones
+        this.enemyAnimController = new AnimationController(this.scene, this.enemyModel, false);
     }
 
     // Animaciones de batalla
     animateAttack(attacker) {
-        const target = attacker === 'player' ? this.enemyModel : this.playerModel;
-        const attacker3d = attacker === 'player' ? this.playerModel : this.enemyModel;
-
-        this.tweenAttack(attacker3d, target);
-        this.createImpactParticles(target.position);
+        const controller = attacker === 'player' ? this.playerAnimController : this.enemyAnimController;
+        if (controller) {
+            controller.attackAnimation();
+            this.createImpactParticles(
+                attacker === 'player' ? this.enemyModel.position : this.playerModel.position
+            );
+        }
     }
 
     animateSkill(attacker) {
-        const target = attacker === 'player' ? this.enemyModel : this.playerModel;
-        const attacker3d = attacker === 'player' ? this.playerModel : this.enemyModel;
-
-        this.tweenSkill(attacker3d, target);
-        this.createMagicParticles(target.position, attacker === 'player' ? 0x667eea : 0xff6b6b);
+        const controller = attacker === 'player' ? this.playerAnimController : this.enemyAnimController;
+        if (controller) {
+            controller.skillAnimation();
+            const targetPos = attacker === 'player' ? this.enemyModel.position : this.playerModel.position;
+            this.createMagicParticles(targetPos, attacker === 'player' ? 0x667eea : 0xff6b6b);
+        }
     }
 
     animateHeal(healer) {
-        const target = healer === 'player' ? this.playerModel : this.enemyModel;
-        this.createHealParticles(target.position);
+        const controller = healer === 'player' ? this.playerAnimController : this.enemyAnimController;
+        if (controller) {
+            controller.healAnimation();
+            this.createHealParticles(
+                healer === 'player' ? this.playerModel.position : this.enemyModel.position
+            );
+        }
     }
 
     animateDefend(defender) {
-        const target = defender === 'player' ? this.playerModel : this.enemyModel;
-        this.tweenDefend(target);
-        this.createShieldEffect(target.position);
-    }
-
-    tweenAttack(attacker, target) {
-        const originalPos = attacker.position.clone();
-        const direction = target.position.clone().sub(attacker.position).normalize();
-        
-        // Avanzar
-        setTimeout(() => {
-            const startPos = attacker.position.clone();
-            const endPos = startPos.clone().add(direction.multiplyScalar(3));
-            this.lerp(attacker, 'position', startPos, endPos, 300, () => {
-                // Retroceder
-                this.lerp(attacker, 'position', endPos, originalPos, 300);
-            });
-        }, 0);
-    }
-
-    tweenSkill(attacker, target) {
-        // Levantarse
-        const originalY = attacker.position.y;
-        this.lerp(attacker, 'positionY', originalY, originalY + 2, 300, () => {
-            this.lerp(attacker, 'positionY', originalY + 2, originalY, 300);
-        });
-    }
-
-    tweenDefend(defender) {
-        const originalScale = defender.scale.clone();
-        this.lerp(defender, 'scaleY', 1, 0.8, 200, () => {
-            this.lerp(defender, 'scaleY', 0.8, 1, 200);
-        });
+        const controller = defender === 'player' ? this.playerAnimController : this.enemyAnimController;
+        if (controller) {
+            controller.defendAnimation();
+            this.createShieldEffect(
+                defender === 'player' ? this.playerModel.position : this.enemyModel.position
+            );
+        }
     }
 
     createImpactParticles(position) {

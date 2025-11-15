@@ -110,6 +110,11 @@ function spawnEnemy() {
         level: gameState.wave
     };
 
+    // Crear modelo 3D del enemigo
+    if (battle3DScene) {
+        battle3DScene.createEnemyModel(gameState.enemy);
+    }
+
     updateEnemyDisplay();
     addLog(`¡Apareció ${gameState.enemy.name} nivel ${gameState.enemy.level}!`, 'info');
 }
@@ -160,10 +165,16 @@ function playerAttack() {
     // Animar en 3D
     animate3DAttack('player');
     
+    // Animar daño en enemigo
+    if (battle3DScene && battle3DScene.enemyAnimController) {
+        battle3DScene.enemyAnimController.damageAnimation();
+    }
+    
     addLog(`${gameState.player.name} atacó a ${gameState.enemy.name} por ${damage} de daño!`, 'damage');
     updateEnemyDisplay();
 
-    checkBattle();
+    gameState.turn = 'enemy';
+    setTimeout(enemyTurn, 1500);
 }
 
 // Habilidad especial del jugador
@@ -231,6 +242,11 @@ function enemyTurn() {
         
         // Animar en 3D
         animate3DAttack('enemy');
+        
+        // Animar daño en jugador
+        if (battle3DScene && battle3DScene.playerAnimController) {
+            battle3DScene.playerAnimController.damageAnimation();
+        }
         
         addLog(`${gameState.enemy.name} atacó a ${gameState.player.name} por ${damage} de daño!`, 'damage');
         updatePlayerDisplay();
