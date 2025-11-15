@@ -1,7 +1,7 @@
 // three-setup.js - Configuración de Three.js para la batalla 3D
 
 class Battle3DScene {
-    constructor(containerId) {
+    constructor(containerId, initialPlayerType = 'warrior') {
         this.container = document.getElementById(containerId);
         this.scene = null;
         this.camera = null;
@@ -11,6 +11,7 @@ class Battle3DScene {
         this.ground = null;
         this.lights = [];
         this.particles = [];
+        this.playerType = initialPlayerType;
         
         this.initScene();
     }
@@ -42,8 +43,7 @@ class Battle3DScene {
         this.createGround();
 
         // Crear personajes
-        this.createPlayerModel();
-        this.createEnemyModel();
+        this.createPlayerModel(this.playerType);
 
         // Animar
         this.animate();
@@ -111,7 +111,27 @@ class Battle3DScene {
         this.scene.add(line);
     }
 
+    cleanupModel(model) {
+        if (!model) return;
+        this.scene.remove(model);
+        model.traverse(child => {
+            if (child.geometry && child.geometry.dispose) child.geometry.dispose();
+            if (child.material) {
+                if (Array.isArray(child.material)) {
+                    child.material.forEach(mat => mat.dispose && mat.dispose());
+                } else if (child.material.dispose) {
+                    child.material.dispose();
+                }
+            }
+        });
+    }
+
     createPlayerModel(playerType = 'warrior') {
+        this.playerType = playerType;
+        if (this.playerModel) {
+            this.cleanupModel(this.playerModel);
+        }
+
         // Crear modelo dinámico según la clase
         this.playerModel = createPlayerCharacter(playerType);
         this.playerModel.position.set(-10, 0, 0);
@@ -122,6 +142,13 @@ class Battle3DScene {
     }
 
     createEnemyModel(enemyData) {
+        if (this.enemyModel) {
+            this.cleanupModel(this.enemyModel);
+            this.enemyModel = null;
+        }
+
+        if (!enemyData) return;
+
         // Crear modelo dinámico según el tipo de enemigo
         this.enemyModel = createEnemyCharacter(enemyData);
         this.enemyModel.position.set(10, 0, 0);
@@ -131,43 +158,52 @@ class Battle3DScene {
         this.enemyAnimController = new AnimationController(this.scene, this.enemyModel, false);
     }
 
+    setPlayerCharacter(playerType) {
+        this.createPlayerModel(playerType);
+    }
+
     // Animaciones de batalla
     animateAttack(attacker) {
         const controller = attacker === 'player' ? this.playerAnimController : this.enemyAnimController;
-        if (controller) {
-            controller.attackAnimation();
-            this.createImpactParticles(
-                attacker === 'player' ? this.enemyModel.position : this.playerModel.position
-            );
+        if (!controller) return;
+
+        controller.attackAnimation();
+        const target = attacker === 'player' ? this.enemyModel : this.playerModel;
+        if (target) {
+            this.createImpactParticles(target.position);
         }
     }
 
     animateSkill(attacker) {
         const controller = attacker === 'player' ? this.playerAnimController : this.enemyAnimController;
-        if (controller) {
-            controller.skillAnimation();
-            const targetPos = attacker === 'player' ? this.enemyModel.position : this.playerModel.position;
-            this.createMagicParticles(targetPos, attacker === 'player' ? 0x667eea : 0xff6b6b);
+        if (!controller) return;
+
+        controller.skillAnimation();
+        const target = attacker === 'player' ? this.enemyModel : this.playerModel;
+        if (target) {
+            this.createMagicParticles(target.position, attacker === 'player' ? 0x667eea : 0xff6b6b);
         }
     }
 
     animateHeal(healer) {
         const controller = healer === 'player' ? this.playerAnimController : this.enemyAnimController;
-        if (controller) {
-            controller.healAnimation();
-            this.createHealParticles(
-                healer === 'player' ? this.playerModel.position : this.enemyModel.position
-            );
+        if (!controller) return;
+
+        controller.healAnimation();
+        const source = healer === 'player' ? this.playerModel : this.enemyModel;
+        if (source) {
+            this.createHealParticles(source.position);
         }
     }
 
     animateDefend(defender) {
         const controller = defender === 'player' ? this.playerAnimController : this.enemyAnimController;
-        if (controller) {
-            controller.defendAnimation();
-            this.createShieldEffect(
-                defender === 'player' ? this.playerModel.position : this.enemyModel.position
-            );
+        if (!controller) return;
+
+        controller.defendAnimation();
+        const source = defender === 'player' ? this.playerModel : this.enemyModel;
+        if (source) {
+            this.createShieldEffect(source.position);
         }
     }
 
@@ -290,6 +326,8 @@ class Battle3DScene {
 
     updateModels(playerData, enemyData) {
         // Actualizar posición según HP
+        if (!this.playerModel || !this.enemyModel || !playerData || !enemyData) return;
+
         const playerHealthPercent = playerData.hp / playerData.maxHp;
         const enemyHealthPercent = enemyData.hp / enemyData.maxHp;
 
@@ -337,8 +375,12 @@ class Battle3DScene {
 // Crear instancia global
 let battle3DScene = null;
 
-function initializeBattle3D() {
-    battle3DScene = new Battle3DScene('battleArena3D');
+function initializeBattle3D(playerType = 'warrior') {
+    if (!battle3DScene) {
+        battle3DScene = new Battle3DScene('battleArena3D', playerType);
+    } else {
+        battle3DScene.setPlayerCharacter(playerType);
+    }
 }
 
 function animate3DAttack(attacker) {

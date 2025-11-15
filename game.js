@@ -79,7 +79,7 @@ function selectCharacter(characterType) {
     
     // Inicializar 3D después de cambiar pantalla
     setTimeout(() => {
-        initializeBattle3D();
+        initializeBattle3D(gameState.player.type);
         updatePlayerDisplay();
         spawnEnemy();
     }, 100);
@@ -191,6 +191,9 @@ function playerSkill() {
 
     // Animar en 3D
     animate3DSkill('player');
+    if (battle3DScene && battle3DScene.enemyAnimController) {
+        battle3DScene.enemyAnimController.damageAnimation();
+    }
 
     addLog(`${gameState.player.name} usó ${gameState.player.special}! Daño: ${Math.floor(damage)}!`, 'damage');
     updateEnemyDisplay();
