@@ -76,8 +76,13 @@ function selectCharacter(characterType) {
     // Iniciar batalla
     startBattle();
     changeScreen('battleScreen');
-    updatePlayerDisplay();
-    spawnEnemy();
+    
+    // Inicializar 3D después de cambiar pantalla
+    setTimeout(() => {
+        initializeBattle3D();
+        updatePlayerDisplay();
+        spawnEnemy();
+    }, 100);
 }
 
 // Cambiar pantalla
@@ -152,6 +157,9 @@ function playerAttack() {
     const damage = calculateDamage(gameState.player, gameState.enemy);
     gameState.enemy.hp -= damage;
 
+    // Animar en 3D
+    animate3DAttack('player');
+    
     addLog(`${gameState.player.name} atacó a ${gameState.enemy.name} por ${damage} de daño!`, 'damage');
     updateEnemyDisplay();
 
@@ -170,6 +178,9 @@ function playerSkill() {
     gameState.enemy.hp -= damage;
     gameState.specialCooldown = 3;
 
+    // Animar en 3D
+    animate3DSkill('player');
+
     addLog(`${gameState.player.name} usó ${gameState.player.special}! Daño: ${Math.floor(damage)}!`, 'damage');
     updateEnemyDisplay();
 
@@ -185,6 +196,9 @@ function playerHeal() {
     gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + healAmount);
     const actualHealed = gameState.player.hp - oldHp;
 
+    // Animar en 3D
+    animate3DHeal('player');
+
     addLog(`${gameState.player.name} se curó ${actualHealed} puntos de vida.`, 'heal');
     updatePlayerDisplay();
 
@@ -197,6 +211,10 @@ function playerDefend() {
     if (gameState.turn !== 'player') return;
 
     gameState.defending = true;
+    
+    // Animar en 3D
+    animate3DDefend('player');
+
     addLog(`${gameState.player.name} se pone en guardia! Defensa aumentada.`, 'info');
     gameState.turn = 'enemy';
     setTimeout(enemyTurn, 1500);
@@ -210,6 +228,10 @@ function enemyTurn() {
     } else {
         const damage = calculateDamage(gameState.enemy, gameState.player);
         gameState.player.hp -= damage;
+        
+        // Animar en 3D
+        animate3DAttack('enemy');
+        
         addLog(`${gameState.enemy.name} atacó a ${gameState.player.name} por ${damage} de daño!`, 'damage');
         updatePlayerDisplay();
     }
